@@ -26,7 +26,7 @@ GROQ_API_KEY = os.environ.get('AgenticRAGChatbot_APIKEY')
 
 llm = ChatGroq(
     temperature=0,
-    model_name="mixtral-8x7b-32768",
+    model_name="llama-3.1-8b-instant",
     api_key=GROQ_API_KEY
 )
 
