@@ -8,11 +8,17 @@ from langchain.chains import create_history_aware_retriever
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 from langchain_core.documents import Document
+from langchain.storage import LocalFileStore
+from langchain.embeddings import CacheBackedEmbeddings
 import torch, os
 
 from datasets import load_dataset
 
 VECTOR_DB_DIR = "chroma_db"
+EMBEDDING_CACHED_DIR = "embedding_cache"
+
+os.makedirs(EMBEDDING_CACHED_DIR, exist_ok=True)
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using device: {device}")
 
@@ -24,22 +30,45 @@ llm = ChatGroq(
     api_key=GROQ_API_KEY
 )
 
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={'device': device})
+underlying_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={'device': device})
+store = LocalFileStore(EMBEDDING_CACHED_DIR)
 
-print("Loading Wikipedia dataset...")
-streaming_dataset = load_dataset("legacy-datasets/wikipedia", "20220301.en", split="train", streaming=True, trust_remote_code=True)
-subset_dataset = streaming_dataset.take(1000)
+cached_embedding = CacheBackedEmbeddings.from_bytes_store(
+    underlying_embeddings=underlying_embeddings,
+    document_embedding_cache=store,
+    namespace=underlying_embeddings.model_name
+)
 
-docs = []
-for item in subset_dataset:
-    docs.append(Document(page_content=item['text'], metadata={'title': item['title']}))
+if not os.path.exists(VECTOR_DB_DIR):
+    print("Vector store not found. Creating a new one...")
+    
+    print("Loading Wikipedia dataset...")
+    streaming_dataset = load_dataset("legacy-datasets/wikipedia", "20220301.en", split="train", streaming=True, trust_remote_code=True)
+    
+    # Keep demo hardware-friendly, using only subset
+    subset_dataset = streaming_dataset.take(1000)
 
-print(f"Loaded {len(docs)} documents from Wikipedia.")
+    docs = []
+    for item in subset_dataset:
+        docs.append(Document(page_content=item['text'], metadata={'title': item['title']}))
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-chunks = text_splitter.split_documents(docs)
+    print(f"Loaded {len(docs)} documents from Wikipedia.")
 
-# Contextualizer and QA chain
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    chunks = text_splitter.split_documents(docs)
+
+    db = Chroma.from_documents(chunks, cached_embedding, persist_directory=VECTOR_DB_DIR)
+    print(f"Vector store created and saved to '{VECTOR_DB_DIR}'.")
+else:
+    print(f"Loading existing vector store from '{VECTOR_DB_DIR}'...")
+    db = Chroma(persist_directory=VECTOR_DB_DIR, embedding_function=cached_embedding)
+    print("Done.")
+
+
+print("Getting retriever...")
+retriever = db.as_retriever()
+print("Done.")
+
 contextualizer_prompt = ChatPromptTemplate.from_messages([
     ("system", "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history."),
     ("human", "{input}"),
