@@ -1,25 +1,19 @@
-from core.tools import history_aware_retriever, question_answer_chain
+from core.tools import rag_chain_executor
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
-chain = (
-    RunnablePassthrough.assign(context=history_aware_retriever)
-    | question_answer_chain
-    | StrOutputParser()
-)
-
 def chat():
-    print("Session started. You can leave chat by typing exit/quit/bye anytime.")
+    print("Session started. Type exit/quit/bye to leave.")
     while True:
         question = input("You: ")
         if question.lower() in ["exit", "quit", "bye"]:
-            print("Goodbye!")
+            print("Bye!")
             break
-
-        chat_history = []
-        
-        response = chain.invoke({"input": question, "chat_history": chat_history})
-        print(f"Bot: {response}")
+        try:
+            response = rag_chain_executor(question)
+            print(f"Bot: {response}")
+        except Exception as e:
+            print(f"[Error] {e}")
 
 if __name__ == "__main__":
     chat()
