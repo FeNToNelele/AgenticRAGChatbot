@@ -1,1 +1,0 @@
-python 3 -m streamlit run gui_web.py
