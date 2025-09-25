@@ -3,18 +3,41 @@ from langgraph.graph import StateGraph, END
 from langchain_core.documents import Document
 
 class RAGState(TypedDict):
+    """
+    Class for Defining the state passed between nodes in the RAG pipeline.
+    """
+
     question: str
     context: List[Document]
     answer: str
 
 def retriever_node_factory(retriever):
+    """
+    Factory function that returns a retriever node.
+    The node searches for documents relevant to the user's question using
+    the given retriever and updates the context.
+
+    Args:
+        retriever (_type_): _description_
+    """
     def node(state: RAGState) -> RAGState:
         print("[Retriever] Searching for documents...")
+
         docs = retriever.invoke(state["question"])
         return {**state, "context": docs}
     return node
 
+def summarizer_node(state: RAGState) -> RAGState:
+    pass
+
 def chatbot_node_factory(llm):
+    """
+    Factory function that returns a chatbot node. The node generates an answer based on the given state using the provided LLM.
+
+    Args:
+        llm (HuggingFacePipeline): A LLM which is already wrapped in HuggingFace's pipeline.
+    """
+
     def node(state: RAGState) -> RAGState:
         print("[Chatbot Node] Generating answer...")
 
@@ -45,15 +68,34 @@ def chatbot_node_factory(llm):
     return node
 
 def controller_node(state: RAGState) -> str:
+    """
+    The node which decides the next step in the pipeline.
+    Uses a simple heuristic: if the question has less than 5 words, skip retrieval and go directly to the chatbot; otherwise use retrieval.
+    """
+
+    """TODO: Implement more sophisticated logic,
+    e.g.: web search, task type decision (arithmetic/creative task etc.)"""
+
     question = state["question"]
     if len(question.split()) < 5:
         print("[Controller] No need for retrieval.")
         return {"next": "chatbot"}
+    elif "summary" in question.lower() or "sum up" in question.lower():
+        print("[Controller] User asked for summary.")
+        return {"next" : "retrieve"}
     else:
         print("[Controller] Use retrieval.")
         return {"next": "retrieve"}
 
 def build_graph(retriever, llm):
+    """
+    Build and compile a LangGraph state graph with controller, retriever, and chatbot nodes.
+    The graph executes the pipeline from controller over retriever to chatbot, depending on decision made by controller.
+
+    Returns:
+        CompiledStateGraph: A compiled graph.
+    """
+
     graph = StateGraph(RAGState)
     graph.add_node("retrieve", retriever_node_factory(retriever))
     graph.add_node("chatbot", chatbot_node_factory(llm))

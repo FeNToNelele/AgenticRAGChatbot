@@ -12,10 +12,22 @@ VECTOR_DB_DIR = "chroma_db"
 EMBEDDING_CACHED_DIR = "embedding_cache"
 
 def get_device():
+    """
+    Return the device to use for computation.
+
+    Returns:
+        str: Device id that is going to be used during execution.
+    """
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 def fetch_embedding():
-    """Return cache-backed embedding function."""
+    """
+    Create and return a cache-backed HuggingFace embedding function.
+
+    Returns:
+        CacheBackedEmbeddings: Embedding function with local cache support.
+    """
+
     os.makedirs(EMBEDDING_CACHED_DIR, exist_ok=True)
 
     embeddings = HuggingFaceEmbeddings(
@@ -30,11 +42,28 @@ def fetch_embedding():
         namespace=embeddings.model_name,
     )
 
+def build_vectorstore(cached_embedding, backend: list):
+    for backend_id in backend:
+        if backend_id == "chroma":
+            return build_chroma_db(cached_embedding)
+        else:
+            raise NotImplementedError("This backend is not yet implemented.")
 
-def build_database(cached_embedding):
-    """Create or load a Chroma vector store."""
+
+def build_chroma_db(cached_embedding):
+    """
+    Create or load a Chroma vector store with embeddings.
+
+    Args:
+        cached_embedding: Embedding function with caching enabled.
+
+    Returns:
+        Chroma: A Chroma vector store built from documents or loaded from disk.
+    """
+
+
     if not os.path.exists(VECTOR_DB_DIR):
-        print("Vector store not found. Creating a new one...")
+        print("ChromaDB vector store not found. Creating a new one...")
 
         streaming_dataset = load_dataset(
             "legacy-datasets/wikipedia",
@@ -55,9 +84,9 @@ def build_database(cached_embedding):
         chunks = text_splitter.split_documents(docs)
 
         db = Chroma.from_documents(chunks, cached_embedding, persist_directory=VECTOR_DB_DIR)
-        print(f"Vector store created and saved to '{VECTOR_DB_DIR}'.")
+        print(f"ChromaDB store created and saved to '{VECTOR_DB_DIR}'.")
     else:
-        print(f"Loading existing vector store from '{VECTOR_DB_DIR}'...")
+        print(f"Loading ChromaDB from '{VECTOR_DB_DIR}'...")
         db = Chroma(persist_directory=VECTOR_DB_DIR, embedding_function=cached_embedding)
 
     return db

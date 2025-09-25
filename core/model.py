@@ -3,6 +3,17 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from langchain.llms import HuggingFacePipeline
 
 def prepare_pipeline(model, tokenizer):
+    """
+    Prepare a HuggingFace text-generation pipeline with specified parameters.
+
+    Args:
+        model (BaseModelWithGenerate): A pretrained LLM with its hardware config (e.g. use quantitatization, floating point)
+        tokenizer (AutoTokenizer): The tokenizer instance, must be compatible with model.
+
+    Returns:
+        HuggingFacePipeline: A prepared HuggingFace pipeline.
+    """
+    
     return pipeline(
         "text-generation",
         model=model,
@@ -17,7 +28,16 @@ def prepare_pipeline(model, tokenizer):
     )
 
 def load_llm(model_name="meta-llama/Llama-3.2-3B-Instruct"):
-    """Load LLaMA model wrapped in HuggingFacePipeline."""
+    """
+    Load a HuggingFace language model and wrap it into a HuggingFacePipeline.
+
+    Args:
+        model_name (str, optional): The name of the model. See https://huggingface.co/models?pipeline_tag=text-generation&sort=trending for more. Defaults to "meta-llama/Llama-3.2-3B-Instruct".
+
+    Returns:
+        HuggingFacePipeLine: A wrapped LLM in HuggingFacePipeline.
+    """
+
     print(f"Loading model {model_name}...")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(
