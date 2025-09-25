@@ -39,7 +39,7 @@ def chatbot_node_factory(llm):
     """
 
     def node(state: RAGState) -> RAGState:
-        print("[Chatbot Node] Generating answer...")
+        print("[Generator Node] Generating answer...")
 
         prompt_text = """Use the following context to answer the user's question in a friendly, 
             helpful, short and concise manner. Do not leave "Note: etc." texts after you answered."""
@@ -79,7 +79,7 @@ def controller_node(state: RAGState) -> str:
     question = state["question"]
     if len(question.split()) < 5:
         print("[Controller] No need for retrieval.")
-        return {"next": "chatbot"}
+        return {"next": "generate"}
     elif "summary" in question.lower() or "sum up" in question.lower():
         print("[Controller] User asked for summary.")
         return {"next" : "retrieve"}
@@ -98,7 +98,7 @@ def build_graph(retriever, llm):
 
     graph = StateGraph(RAGState)
     graph.add_node("retrieve", retriever_node_factory(retriever))
-    graph.add_node("chatbot", chatbot_node_factory(llm))
+    graph.add_node("generate", chatbot_node_factory(llm))
     graph.add_node("controller", controller_node)
 
     graph.set_entry_point("controller")
@@ -107,10 +107,10 @@ def build_graph(retriever, llm):
         lambda state: state["next"],
         {
             "retrieve": "retrieve",
-            "chatbot": "chatbot",
+            "generate": "generate",
         },
     )
-    graph.add_edge("retrieve", "chatbot")
-    graph.add_edge("chatbot", END)
+    graph.add_edge("retrieve", "generate")
+    graph.add_edge("generate", END)
 
     return graph.compile()
