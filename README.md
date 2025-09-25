@@ -1,5 +1,8 @@
 # Agentic RAG Chatbot Prototype
 
+![til](./_project_docs/chatbot_cropped_demo.gif)
+
+
 This repository contains an **Agentic Retrieval-Augmented Generation (RAG)** chatbot prototype built with [LangGraph](https://github.com/langchain-ai/langgraph), [LangChain](https://www.langchain.com/), and open-source [HuggingFace models](https://huggingface.co/).  
 The goal is to demonstrate **agentic behavior**, modular pipeline design, and potential scalability, rather than provide a production-ready system.
 
