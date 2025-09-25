@@ -1,2 +1,5 @@
 venv
 data
+chroma_db
+core/__pycache__
+core/*.pyc
