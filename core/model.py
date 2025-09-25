@@ -7,7 +7,7 @@ def prepare_pipeline(model, tokenizer):
     Prepare a HuggingFace text-generation pipeline with specified parameters.
 
     Args:
-        model (BaseModelWithGenerate): A pretrained LLM with its hardware config (e.g. use quantitatization, floating point)
+        model (BaseModelWithGenerate): A pretrained LLM with its hardware config (e.g. use quantization, floating point)
         tokenizer (AutoTokenizer): The tokenizer instance, must be compatible with model.
 
     Returns:
