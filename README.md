@@ -26,7 +26,7 @@ User → Controller Node → (optional) Retriever Node → QA Node → Answer
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/your-username/agentic-rag-chatbot.git
+git clone https://github.com/FeNToNelele/AgenticRAGChatbot.git
 cd agentic-rag-chatbot
 ```
 ### 2. Install Dependencies
